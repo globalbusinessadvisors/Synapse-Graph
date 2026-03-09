@@ -1,16 +1,14 @@
 <p align="center">
+  <img src="assets/synapse-graph-banner.svg" alt="SynapseGraph — Brain-Computer Interface Memory Layer" width="100%">
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Rust-1.75+-dea584?style=for-the-badge&logo=rust&logoColor=white" alt="Rust">
   <img src="https://img.shields.io/badge/WASM-545KB-654ff0?style=for-the-badge&logo=webassembly&logoColor=white" alt="WASM">
   <img src="https://img.shields.io/badge/Tests-204_passing-2ea44f?style=for-the-badge&logo=checkmarx&logoColor=white" alt="Tests">
   <img src="https://img.shields.io/badge/no__std-compatible-blue?style=for-the-badge" alt="no_std">
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License">
 </p>
-
-<br>
-
-<h1 align="center">SynapseGraph</h1>
-
-<h3 align="center">A Personalized Brain-Computer Interface Memory Layer</h3>
 
 <p align="center">
   <em>Persistent, adaptive memory substrate for direct neural interfaces — turning raw spike trains into actionable intent predictions at neural recording rates.</em>
