@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/synapse-graph-banner.svg" alt="SynapseGraph — Brain-Computer Interface Memory Layer" width="100%">
+  <img src="assets/synapse-graph-banner.svg?v=2" alt="SynapseGraph — Brain-Computer Interface Memory Layer" width="100%">
 </p>
 
 <p align="center">
