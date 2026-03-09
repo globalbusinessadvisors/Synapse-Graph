@@ -58,8 +58,8 @@
 
   <!-- Ambient glow effects -->
   <circle cx="200" cy="200" r="180" fill="url(#pulse1)" filter="url(#blur1)" />
-  <circle cx="600" cy="200" r="200" fill="url(#pulse2)" filter="url(#blur1)" opacity="0.4" />
-  <circle cx="1000" cy="200" r="160" fill="url(#pulse3)" filter="url(#blur1)" />
+  <circle cx="350" cy="200" r="200" fill="url(#pulse2)" filter="url(#blur1)" opacity="0.4" />
+  <circle cx="900" cy="200" r="180" fill="url(#pulse3)" filter="url(#blur1)" />
 
   <!-- Neural network graph - edges (connections) -->
   <!-- Layer 1 to Layer 2 -->
@@ -90,8 +90,8 @@
   <line x1="315" y1="280" x2="415" y2="260" stroke="#7b2fff" stroke-width="1.6" opacity="0.55" />
 
   <!-- Layer 4 to output -->
-  <line x1="420" y1="160" x2="500" y2="200" stroke="#ff2d95" stroke-width="2" opacity="0.5" />
-  <line x1="415" y1="260" x2="500" y2="200" stroke="#ff2d95" stroke-width="2" opacity="0.5" />
+  <line x1="420" y1="160" x2="480" y2="210" stroke="#ff2d95" stroke-width="2" opacity="0.5" />
+  <line x1="415" y1="260" x2="480" y2="210" stroke="#ff2d95" stroke-width="2" opacity="0.5" />
 
   <!-- Spike train visualization (left side - incoming data) -->
   <polyline points="20,95 30,95 32,60 34,95 44,95 46,70 48,95 58,95 60,50 62,95 72,95"
@@ -132,22 +132,22 @@
   <circle cx="415" cy="260" r="9" fill="url(#nodeGrad2)" opacity="0.9" />
 
   <!-- Output node (prediction) -->
-  <circle cx="500" cy="200" r="13" fill="url(#nodeGrad3)" opacity="1" />
-  <circle cx="500" cy="200" r="20" fill="none" stroke="#00ffa3" stroke-width="0.8" opacity="0.35" filter="url(#blur2)" />
-  <circle cx="500" cy="200" r="28" fill="none" stroke="#00ffa3" stroke-width="0.4" opacity="0.15" filter="url(#blur2)" />
+  <circle cx="480" cy="210" r="13" fill="url(#nodeGrad3)" opacity="1" />
+  <circle cx="480" cy="210" r="20" fill="none" stroke="#00ffa3" stroke-width="0.8" opacity="0.35" filter="url(#blur2)" />
+  <circle cx="480" cy="210" r="28" fill="none" stroke="#00ffa3" stroke-width="0.4" opacity="0.15" filter="url(#blur2)" />
 
   <!-- Title text -->
-  <text x="600" y="155" font-family="'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="64" font-weight="700" fill="white" text-anchor="middle" letter-spacing="-1">
+  <text x="820" y="155" font-family="'SF Pro Display', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="64" font-weight="700" fill="white" text-anchor="middle" letter-spacing="-1">
     Synapse<tspan fill="url(#glow1)">Graph</tspan>
   </text>
 
   <!-- Subtitle -->
-  <text x="600" y="200" font-family="'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" fill="white" text-anchor="middle" letter-spacing="3" font-weight="500">
+  <text x="820" y="200" font-family="'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="18" fill="white" text-anchor="middle" letter-spacing="3" font-weight="500">
     BRAIN-COMPUTER INTERFACE MEMORY LAYER
   </text>
 
   <!-- Tagline -->
-  <text x="600" y="240" font-family="'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#9aa3bc" text-anchor="middle" letter-spacing="1">
+  <text x="820" y="240" font-family="'SF Pro Text', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" fill="#9aa3bc" text-anchor="middle" letter-spacing="1">
     Spike Trains  &#x2192;  Cognitive Graph  &#x2192;  Intent Prediction  &#x2192;  Adaptation
   </text>
 
