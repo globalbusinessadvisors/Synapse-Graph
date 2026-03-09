@@ -1,0 +1,11 @@
+[package]
+name = "synapse-graph-memory"
+version = "0.1.0"
+edition = "2021"
+description = "Vector memory with HNSW index and collection management (DDD-002)"
+
+[dependencies]
+synapse-graph-types = { path = "../synapse-graph-types" }
+
+[dev-dependencies]
+serde_json = { workspace = true }

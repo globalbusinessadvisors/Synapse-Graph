@@ -1,0 +1,19 @@
+[package]
+name = "synapse-graph-core"
+version = "0.1.0"
+edition = "2021"
+description = "Application orchestration for SynapseGraph"
+
+[dependencies]
+serde = { workspace = true }
+synapse-graph-types = { path = "../synapse-graph-types" }
+synapse-graph-ingestion = { path = "../synapse-graph-ingestion" }
+synapse-graph-memory = { path = "../synapse-graph-memory" }
+synapse-graph-temporal = { path = "../synapse-graph-temporal" }
+synapse-graph-cognitive = { path = "../synapse-graph-cognitive" }
+synapse-graph-prediction = { path = "../synapse-graph-prediction" }
+synapse-graph-adaptation = { path = "../synapse-graph-adaptation" }
+synapse-graph-provenance = { path = "../synapse-graph-provenance" }
+
+[dev-dependencies]
+serde_json = { workspace = true }

@@ -1,0 +1,15 @@
+[package]
+name = "synapse-graph-types"
+version = "0.1.0"
+edition = "2021"
+description = "Shared domain types for SynapseGraph"
+
+[dependencies]
+serde = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[features]
+default = ["std"]
+std = ["serde/std"]

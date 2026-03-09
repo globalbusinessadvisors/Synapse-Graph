@@ -1,0 +1,11 @@
+[package]
+name = "synapse-graph-ingestion"
+version = "0.1.0"
+edition = "2021"
+description = "Spike ingestion and coherence gating for SynapseGraph (DDD-001)"
+
+[dependencies]
+synapse-graph-types = { path = "../synapse-graph-types" }
+
+[dev-dependencies]
+serde_json = { workspace = true }

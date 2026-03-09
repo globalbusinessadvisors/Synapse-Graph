@@ -1,0 +1,13 @@
+[package]
+name = "synapse-graph-provenance"
+version = "0.1.0"
+edition = "2021"
+description = "Provenance DAG and event logging (DDD-007)"
+
+[dependencies]
+synapse-graph-types = { path = "../synapse-graph-types" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

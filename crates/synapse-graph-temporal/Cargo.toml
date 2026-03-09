@@ -1,0 +1,11 @@
+[package]
+name = "synapse-graph-temporal"
+version = "0.1.0"
+edition = "2021"
+description = "Temporal router and tiered learning for SynapseGraph (DDD-003, ADR-001)"
+
+[dependencies]
+synapse-graph-types = { path = "../synapse-graph-types" }
+
+[dev-dependencies]
+serde_json = { workspace = true }

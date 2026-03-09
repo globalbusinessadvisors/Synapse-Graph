@@ -1,0 +1,13 @@
+[package]
+name = "synapse-graph-adaptation"
+version = "0.1.0"
+edition = "2021"
+description = "Two-tier LoRA adaptation engine (DDD-006, ADR-004)"
+
+[dependencies]
+synapse-graph-types = { path = "../synapse-graph-types" }
+synapse-graph-cognitive = { path = "../synapse-graph-cognitive" }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+synapse-graph-prediction = { path = "../synapse-graph-prediction" }

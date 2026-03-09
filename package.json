@@ -1,0 +1,10 @@
+{
+  "name": "synapse-graph",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "ruvector": "^0.2.11",
+    "@ruvector/gnn": "^0.1.25",
+    "@ruvector/rvf-wasm": "^0.1.6"
+  }
+}

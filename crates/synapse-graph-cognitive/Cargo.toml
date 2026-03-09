@@ -1,0 +1,11 @@
+[package]
+name = "synapse-graph-cognitive"
+version = "0.1.0"
+edition = "2021"
+description = "Cognitive graph with hypergraph store and self-healing (DDD-004, ADR-005)"
+
+[dependencies]
+synapse-graph-types = { path = "../synapse-graph-types" }
+
+[dev-dependencies]
+serde_json = { workspace = true }

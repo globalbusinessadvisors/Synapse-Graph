@@ -1,0 +1,13 @@
+[package]
+name = "synapse-graph-prediction"
+version = "0.1.0"
+edition = "2021"
+description = "Intent prediction pipeline for SynapseGraph (DDD-005)"
+
+[dependencies]
+synapse-graph-types = { path = "../synapse-graph-types" }
+synapse-graph-memory = { path = "../synapse-graph-memory" }
+synapse-graph-cognitive = { path = "../synapse-graph-cognitive" }
+
+[dev-dependencies]
+serde_json = { workspace = true }

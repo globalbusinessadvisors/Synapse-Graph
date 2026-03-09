@@ -1,0 +1,24 @@
+[package]
+name = "synapse-graph-wasm"
+version = "0.1.0"
+edition = "2021"
+description = "WASM compilation target for SynapseGraph (ADR-006)"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+synapse-graph-types = { path = "../synapse-graph-types" }
+synapse-graph-core = { path = "../synapse-graph-core" }
+synapse-graph-ingestion = { path = "../synapse-graph-ingestion" }
+synapse-graph-memory = { path = "../synapse-graph-memory" }
+synapse-graph-temporal = { path = "../synapse-graph-temporal" }
+synapse-graph-cognitive = { path = "../synapse-graph-cognitive" }
+synapse-graph-prediction = { path = "../synapse-graph-prediction" }
+synapse-graph-adaptation = { path = "../synapse-graph-adaptation" }
+synapse-graph-provenance = { path = "../synapse-graph-provenance" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
