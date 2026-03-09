@@ -347,9 +347,6 @@ The end-to-end simulation covers realistic BCI scenarios:
 
 | Document | Description |
 |----------|-------------|
-| [SPARC Specification](plans/SPARC.md) | Full system specification and pseudocode |
-| [Architecture Index](plans/INDEX.md) | Architecture documentation overview |
-| [Implementation Prompts](plans/IMPLEMENTATION_PROMPTS.md) | 15 sequential build prompts |
 | [ADR-001 through ADR-007](plans/adrs/) | Architecture Decision Records |
 | [DDD-001 through DDD-007](plans/ddd/) | Domain-Driven Design documents |
 
