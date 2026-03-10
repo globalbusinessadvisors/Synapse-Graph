@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SynapseGraph — Neural Interface</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #050508;
+}
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+input[type=range] {
+  -webkit-appearance: none;
+  background: transparent;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: #a78bfa;
+  cursor: pointer;
+  margin-top: -5px;
+  box-shadow: 0 0 12px rgba(167,139,250,0.6);
+}
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 3px;
+  cursor: pointer;
+  background: #27272a;
+  border-radius: 2px;
+}
+.scrollbar-thin::-webkit-scrollbar { width: 4px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 2px; }
+@keyframes spike-pulse {
+  0%, 100% { opacity: 0.3; transform: scaleY(0.3); }
+  50% { opacity: 1; transform: scaleY(1); }
+}
+@keyframes drift { 0%, 100% { transform: translate(0,0); } 50% { transform: translate(10px, -5px); } }
+.animate-drift { animation: drift 8s ease-in-out infinite; }
+.tab-active { color: #a78bfa; border-color: #a78bfa; }
+.tab-inactive { color: #71717a; border-color: transparent; }
+.tab-inactive:hover { color: #a1a1aa; }
+</style>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        synapse: { 400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed', 900: '#1e1033' },
+        neural: { 400: '#34d399', 500: '#10b981' },
+        spike: { 400: '#f472b6', 500: '#ec4899' },
+        temporal: { 400: '#60a5fa', 500: '#3b82f6' },
+      }
+    }
+  }
+}
+</script>
+</head>
+<body class="bg-[#050508] text-zinc-400 h-screen w-full flex flex-col overflow-hidden selection:bg-synapse-500 selection:text-white">
+
+  <!-- Header -->
+  <header class="flex items-center justify-between px-5 py-3 border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-xl z-30 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 bg-synapse-900 rounded-lg flex items-center justify-center border border-synapse-500/30 shadow-lg shadow-synapse-500/10">
+        <span class="iconify text-synapse-400" data-icon="lucide:brain" data-width="20"></span>
+      </div>
+      <div>
+        <h1 class="text-zinc-100 font-semibold tracking-tight text-sm">SynapseGraph</h1>
+        <span class="text-[10px] text-zinc-500 tracking-wide">Neural Memory Substrate</span>
+      </div>
+    </div>
+
+    <!-- Session Controls -->
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs">
+        <span class="iconify text-zinc-500" data-icon="lucide:user" data-width="12"></span>
+        <span class="text-zinc-400">Session:</span>
+        <span class="text-zinc-200 font-mono" id="sessionId">001</span>
+      </div>
+      <button onclick="toggleSession()" id="sessionBtn" class="flex items-center gap-2 px-3 py-1.5 bg-neural-500/10 border border-neural-500/30 rounded-lg text-xs text-neural-400 hover:bg-neural-500/20 transition-all">
+        <span class="w-2 h-2 rounded-full bg-neural-400 animate-pulse"></span>
+        <span id="sessionLabel">Active</span>
+      </button>
+      <div class="h-5 w-px bg-zinc-800"></div>
+      <button onclick="runMaintenance()" class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 transition-all">
+        <span class="iconify" data-icon="lucide:wrench" data-width="12"></span>
+        Maintain
+      </button>
+    </div>
+
+    <!-- Status -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-3 text-[10px] font-mono">
+        <span class="text-synapse-400">WASM <span id="wasmSize">545KB</span></span>
+        <span class="text-zinc-600">|</span>
+        <span class="text-zinc-500">MEM <span id="memUsage" class="text-zinc-300">2.4MB</span></span>
+        <span class="text-zinc-600">|</span>
+        <span class="text-zinc-500">LAT <span id="latency" class="text-neural-400">0.3ms</span></span>
+      </div>
+      <button onclick="document.getElementById('configPanel').classList.toggle('hidden')" class="w-8 h-8 flex items-center justify-center text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 rounded-lg transition-all">
+        <span class="iconify" data-icon="lucide:settings-2" data-width="16"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <div class="flex flex-1 overflow-hidden relative">
+
+    <!-- Background Gradients -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
+      <div class="absolute -top-[20%] left-[10%] w-[40%] h-[40%] bg-synapse-500/5 rounded-full blur-[150px] animate-drift"></div>
+      <div class="absolute top-[50%] right-[5%] w-[30%] h-[30%] bg-temporal-500/5 rounded-full blur-[120px] animate-drift" style="animation-delay:-3s"></div>
+      <div class="absolute bottom-[10%] left-[30%] w-[25%] h-[25%] bg-spike-500/5 rounded-full blur-[100px] animate-drift" style="animation-delay:-5s"></div>
+    </div>
+
+    <!-- Left Panel: Pipeline Controls -->
+    <aside class="w-72 border-r border-zinc-800/60 bg-zinc-950/50 backdrop-blur-xl flex flex-col z-10 shrink-0">
+      <div class="p-4 border-b border-zinc-800/40">
+        <h2 class="text-xs font-medium text-zinc-400 tracking-wider uppercase mb-3">Pipeline</h2>
+        <div class="text-[10px] text-zinc-600 tracking-wide">Spike Train &rarr; Gate &rarr; Router &rarr; Memory</div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-5">
+        <!-- Coherence Gate -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 rounded bg-synapse-500/15 flex items-center justify-center">
+                <span class="iconify text-synapse-400" data-icon="lucide:shield-check" data-width="13"></span>
+              </div>
+              <span class="text-xs font-medium text-zinc-300">Coherence Gate</span>
+            </div>
+            <span class="text-[10px] font-mono text-neural-400" id="gateStatus">PASS</span>
+          </div>
+          <div class="space-y-2">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-zinc-500">Threshold</span>
+              <span class="text-zinc-300 font-mono" id="coherenceVal">0.50</span>
+            </div>
+            <input type="range" class="w-full" min="0" max="100" value="50" oninput="updateCoherence(this.value)">
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-[10px]">
+            <div class="bg-zinc-900/60 rounded px-2 py-1.5 border border-zinc-800/50">
+              <div class="text-zinc-500">Accepted</div>
+              <div class="text-neural-400 font-mono text-sm" id="gateAccepted">0</div>
+            </div>
+            <div class="bg-zinc-900/60 rounded px-2 py-1.5 border border-zinc-800/50">
+              <div class="text-zinc-500">Rejected</div>
+              <div class="text-spike-400 font-mono text-sm" id="gateRejected">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="h-px bg-zinc-800/50"></div>
+
+        <!-- Temporal Router -->
+        <div class="space-y-3">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded bg-temporal-500/15 flex items-center justify-center">
+              <span class="iconify text-temporal-400" data-icon="lucide:layers" data-width="13"></span>
+            </div>
+            <span class="text-xs font-medium text-zinc-300">Temporal Tiers</span>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-zinc-500 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-spike-400"></span>Fast (ms)</span>
+              <span class="font-mono text-zinc-300" id="tierFast">0</span>
+            </div>
+            <div class="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+              <div class="h-full bg-spike-400 rounded-full transition-all duration-500" id="tierFastBar" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-zinc-500 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-synapse-400"></span>Medium (session)</span>
+              <span class="font-mono text-zinc-300" id="tierMedium">0</span>
+            </div>
+            <div class="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+              <div class="h-full bg-synapse-400 rounded-full transition-all duration-500" id="tierMediumBar" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-zinc-500 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-temporal-400"></span>Slow (lifetime)</span>
+              <span class="font-mono text-zinc-300" id="tierSlow">0</span>
+            </div>
+            <div class="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+              <div class="h-full bg-temporal-400 rounded-full transition-all duration-500" id="tierSlowBar" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="h-px bg-zinc-800/50"></div>
+
+        <!-- LoRA Adaptation -->
+        <div class="space-y-3">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded bg-neural-500/15 flex items-center justify-center">
+              <span class="iconify text-neural-400" data-icon="lucide:refresh-cw" data-width="13"></span>
+            </div>
+            <span class="text-xs font-medium text-zinc-300">LoRA Adaptation</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-[10px]">
+            <div class="bg-zinc-900/60 rounded px-2 py-1.5 border border-zinc-800/50">
+              <div class="text-zinc-500">Fast (R4)</div>
+              <div class="text-synapse-400 font-mono text-sm" id="loraFast">0.00</div>
+            </div>
+            <div class="bg-zinc-900/60 rounded px-2 py-1.5 border border-zinc-800/50">
+              <div class="text-zinc-500">Slow (R16)</div>
+              <div class="text-temporal-400 font-mono text-sm" id="loraSlow">0.00</div>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <div class="flex justify-between text-[11px]">
+              <span class="text-zinc-500">EWC++ Penalty</span>
+              <span class="text-zinc-300 font-mono" id="ewcVal">0.00</span>
+            </div>
+            <div class="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-synapse-500 to-neural-500 rounded-full transition-all duration-500" id="ewcBar" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="h-px bg-zinc-800/50"></div>
+
+        <!-- Provenance -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 rounded bg-zinc-700/30 flex items-center justify-center">
+                <span class="iconify text-zinc-400" data-icon="lucide:link" data-width="13"></span>
+              </div>
+              <span class="text-xs font-medium text-zinc-300">Provenance DAG</span>
+            </div>
+            <span class="text-[10px] font-mono text-neural-400" id="dagIntegrity">VALID</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-[10px]">
+            <div class="bg-zinc-900/60 rounded px-2 py-1.5 border border-zinc-800/50">
+              <div class="text-zinc-500">Events</div>
+              <div class="text-zinc-200 font-mono text-sm" id="dagEvents">0</div>
+            </div>
+            <div class="bg-zinc-900/60 rounded px-2 py-1.5 border border-zinc-800/50">
+              <div class="text-zinc-500">Chain Depth</div>
+              <div class="text-zinc-200 font-mono text-sm" id="dagDepth">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center: Visualizations -->
+    <main class="flex-1 flex flex-col z-10 min-w-0">
+      <!-- Tabs -->
+      <div class="flex items-center border-b border-zinc-800/60 px-4 bg-zinc-950/30 shrink-0">
+        <button onclick="switchTab('graph')" id="tab-graph" class="px-4 py-3 text-xs font-medium border-b-2 tab-active transition-colors">Cognitive Graph</button>
+        <button onclick="switchTab('spikes')" id="tab-spikes" class="px-4 py-3 text-xs font-medium border-b-2 tab-inactive transition-colors">Spike Raster</button>
+        <button onclick="switchTab('predictions')" id="tab-predictions" class="px-4 py-3 text-xs font-medium border-b-2 tab-inactive transition-colors">Predictions</button>
+        <div class="flex-1"></div>
+        <div class="flex items-center gap-2">
+          <button onclick="toggleSimulation()" id="simBtn" class="flex items-center gap-1.5 px-3 py-1.5 bg-synapse-500/15 border border-synapse-500/30 rounded text-xs text-synapse-400 hover:bg-synapse-500/25 transition-all">
+            <span class="iconify" data-icon="lucide:play" data-width="12" id="simIcon"></span>
+            <span id="simLabel">Simulate</span>
+          </button>
+          <button onclick="resetState()" class="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 rounded transition-all">
+            <span class="iconify" data-icon="lucide:rotate-ccw" data-width="14"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Canvas Area -->
+      <div class="flex-1 relative">
+        <canvas id="mainCanvas" class="w-full h-full block"></canvas>
+
+        <!-- Overlay: Ingest Controls -->
+        <div class="absolute top-4 left-4 z-20">
+          <div class="bg-zinc-900/80 backdrop-blur-lg border border-zinc-800/60 rounded-lg p-3 space-y-2 min-w-[180px]">
+            <div class="flex justify-between items-center text-[11px]">
+              <span class="text-zinc-400">Channels</span>
+              <span class="text-zinc-200 font-mono" id="channelCount">128</span>
+            </div>
+            <input type="range" class="w-full" min="8" max="1024" value="128" step="8" oninput="updateChannels(this.value)">
+            <div class="flex justify-between items-center text-[11px]">
+              <span class="text-zinc-400">Spike Rate</span>
+              <span class="text-zinc-200 font-mono"><span id="spikeRate">30</span> kHz</span>
+            </div>
+            <input type="range" class="w-full" min="1" max="100" value="30" oninput="updateSpikeRate(this.value)">
+          </div>
+        </div>
+
+        <!-- Overlay: Stats -->
+        <div class="absolute bottom-4 left-4 z-20 flex items-end gap-3">
+          <div class="bg-zinc-900/80 backdrop-blur-lg border border-zinc-800/60 rounded-lg p-3 space-y-1">
+            <div class="text-[10px] text-zinc-500 uppercase tracking-wider">Ingested</div>
+            <div class="text-2xl font-semibold text-zinc-100 font-mono" id="totalIngested">0</div>
+          </div>
+          <div class="bg-zinc-900/80 backdrop-blur-lg border border-zinc-800/60 rounded-lg p-3 space-y-1">
+            <div class="text-[10px] text-zinc-500 uppercase tracking-wider">Predictions</div>
+            <div class="text-2xl font-semibold text-synapse-400 font-mono" id="totalPredictions">0</div>
+          </div>
+          <div class="bg-zinc-900/80 backdrop-blur-lg border border-zinc-800/60 rounded-lg p-3 space-y-1">
+            <div class="text-[10px] text-zinc-500 uppercase tracking-wider">Shortcuts</div>
+            <div class="text-2xl font-semibold text-neural-400 font-mono" id="totalShortcuts">0</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Panel: Predictions & Shortcuts -->
+    <aside class="w-72 border-l border-zinc-800/60 bg-zinc-950/50 backdrop-blur-xl flex flex-col z-10 shrink-0">
+      <div class="p-4 border-b border-zinc-800/40">
+        <h2 class="text-xs font-medium text-zinc-400 tracking-wider uppercase">Intent Predictions</h2>
+      </div>
+      <div class="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-2" id="predictionList">
+        <div class="text-xs text-zinc-600 text-center py-8">No predictions yet.<br>Start a simulation to generate data.</div>
+      </div>
+
+      <div class="border-t border-zinc-800/40">
+        <div class="p-4 pb-2">
+          <h2 class="text-xs font-medium text-zinc-400 tracking-wider uppercase">Cognitive Shortcuts</h2>
+        </div>
+        <div class="overflow-y-auto scrollbar-thin p-3 pt-1 space-y-2 max-h-[200px]" id="shortcutList">
+          <div class="text-xs text-zinc-600 text-center py-4">No shortcuts discovered.</div>
+        </div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="border-t border-zinc-800/40 p-4 space-y-2">
+        <h2 class="text-xs font-medium text-zinc-400 tracking-wider uppercase mb-2">Feedback</h2>
+        <div class="flex gap-2">
+          <button onclick="sendFeedback(0)" class="flex-1 py-2 text-[11px] bg-neural-500/10 border border-neural-500/30 text-neural-400 rounded-lg hover:bg-neural-500/20 transition-all">Confirm</button>
+          <button onclick="sendFeedback(1)" class="flex-1 py-2 text-[11px] bg-synapse-500/10 border border-synapse-500/30 text-synapse-400 rounded-lg hover:bg-synapse-500/20 transition-all">Correct</button>
+          <button onclick="sendFeedback(2)" class="flex-1 py-2 text-[11px] bg-spike-400/10 border border-spike-400/30 text-spike-400 rounded-lg hover:bg-spike-400/20 transition-all">Reject</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Config Panel (hidden by default) -->
+    <div id="configPanel" class="hidden absolute top-0 right-0 w-80 h-full bg-zinc-950/95 backdrop-blur-xl border-l border-zinc-800/60 z-50 flex flex-col">
+      <div class="flex items-center justify-between p-4 border-b border-zinc-800/40">
+        <h2 class="text-sm font-medium text-zinc-200">Configuration</h2>
+        <button onclick="document.getElementById('configPanel').classList.add('hidden')" class="p-1 text-zinc-500 hover:text-zinc-200">
+          <span class="iconify" data-icon="lucide:x" data-width="16"></span>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-4">
+        <div class="space-y-2">
+          <label class="text-[11px] text-zinc-500">Embedding Dimension</label>
+          <input type="number" value="64" id="cfgDim" class="w-full bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-synapse-500/50">
+        </div>
+        <div class="space-y-2">
+          <label class="text-[11px] text-zinc-500">Cluster Threshold</label>
+          <input type="number" value="2.0" step="0.1" id="cfgCluster" class="w-full bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-synapse-500/50">
+        </div>
+        <div class="space-y-2">
+          <label class="text-[11px] text-zinc-500">Temporal Window (us)</label>
+          <input type="number" value="10000" id="cfgTemporal" class="w-full bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-synapse-500/50">
+        </div>
+        <div class="space-y-2">
+          <label class="text-[11px] text-zinc-500">Fast LoRA Rank</label>
+          <input type="number" value="4" id="cfgFastRank" class="w-full bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-synapse-500/50">
+        </div>
+        <div class="space-y-2">
+          <label class="text-[11px] text-zinc-500">Slow LoRA Rank</label>
+          <input type="number" value="16" id="cfgSlowRank" class="w-full bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-synapse-500/50">
+        </div>
+        <div class="space-y-2">
+          <label class="text-[11px] text-zinc-500">Feedback Window (ms)</label>
+          <input type="number" value="5000" id="cfgFeedback" class="w-full bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-synapse-500/50">
+        </div>
+        <div class="space-y-2">
+          <label class="text-[11px] text-zinc-500">Arena Size (bytes)</label>
+          <input type="number" value="65536" id="cfgArena" class="w-full bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-xs text-zinc-200 font-mono focus:outline-none focus:border-synapse-500/50">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="flex items-center justify-between px-5 py-2 border-t border-zinc-800/60 bg-zinc-950/80 backdrop-blur-xl z-30 shrink-0">
+    <div class="flex items-center gap-4 text-[10px] font-mono text-zinc-500">
+      <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-neural-400" id="connDot"></span> WASM Module</span>
+      <span>no_std</span>
+      <span>ruvector-core 2.0.5</span>
+    </div>
+    <div class="flex items-center gap-4 text-[10px] font-mono">
+      <span class="text-zinc-600">Provenance: <span class="text-neural-400" id="footerHash">---</span></span>
+      <span class="text-zinc-700">v0.1.0</span>
+    </div>
+  </footer>
+
+  <script>
+    // -----------------------------------------------------------------------
+    // State
+    // -----------------------------------------------------------------------
+    const state = {
+      sessionActive: true,
+      sessionId: 1,
+      simulating: false,
+      channels: 128,
+      spikeRate: 30,
+      coherenceThreshold: 0.5,
+      totalIngested: 0,
+      totalDenied: 0,
+      totalPredictions: 0,
+      totalShortcuts: 0,
+      tierFast: 0,
+      tierMedium: 0,
+      tierSlow: 0,
+      loraFast: 0,
+      loraSlow: 0,
+      ewc: 0,
+      dagEvents: 0,
+      dagDepth: 0,
+      predictions: [],
+      shortcuts: [],
+      nodes: [],
+      edges: [],
+      spikeHistory: [],
+      activeTab: 'graph',
+      time: 0,
+      lastPredictionId: 0,
+    };
+
+    // -----------------------------------------------------------------------
+    // Canvas Setup
+    // -----------------------------------------------------------------------
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    let W, H;
+
+    function resize() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width * devicePixelRatio;
+      canvas.height = rect.height * devicePixelRatio;
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      W = rect.width;
+      H = rect.height;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // -----------------------------------------------------------------------
+    // Graph Node/Edge Classes
+    // -----------------------------------------------------------------------
+    class GraphNode {
+      constructor(id, x, y, type) {
+        this.id = id;
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+        this.type = type; // 'memory', 'pattern', 'shortcut'
+        this.size = type === 'shortcut' ? 6 : type === 'pattern' ? 5 : 4;
+        this.activation = 0;
+        this.born = state.time;
+      }
+    }
+
+    class GraphEdge {
+      constructor(source, target, weight, type) {
+        this.source = source;
+        this.target = target;
+        this.weight = weight;
+        this.type = type; // 'coactivation', 'temporal', 'shortcut'
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Simulated WASM API calls
+    // -----------------------------------------------------------------------
+    function simulateIngest() {
+      const numSpikes = Math.floor(state.channels * (0.3 + Math.random() * 0.4));
+      const coherenceScore = 0.3 + Math.random() * 0.6;
+      const passed = coherenceScore >= state.coherenceThreshold;
+      const ingested = passed ? numSpikes : 0;
+      const denied = passed ? 0 : numSpikes;
+
+      state.totalIngested += ingested;
+      state.totalDenied += denied;
+
+      // Update gate
+      document.getElementById('gateAccepted').textContent = state.totalIngested;
+      document.getElementById('gateRejected').textContent = state.totalDenied;
+      document.getElementById('gateStatus').textContent = passed ? 'PASS' : 'DENY';
+      document.getElementById('gateStatus').className = 'text-[10px] font-mono ' + (passed ? 'text-neural-400' : 'text-spike-400');
+
+      if (passed) {
+        // Route to temporal tiers
+        const r = Math.random();
+        if (r < 0.6) { state.tierFast += ingested; }
+        else if (r < 0.9) { state.tierMedium += Math.floor(ingested * 0.3); state.tierFast += Math.floor(ingested * 0.7); }
+        else { state.tierSlow += Math.floor(ingested * 0.1); state.tierMedium += Math.floor(ingested * 0.3); state.tierFast += Math.floor(ingested * 0.6); }
+
+        updateTierBars();
+
+        // Add graph nodes occasionally
+        if (Math.random() < 0.3 && state.nodes.length < 120) {
+          addGraphNode('memory');
+        }
+
+        // Add spike to raster
+        for (let i = 0; i < Math.min(numSpikes, 20); i++) {
+          state.spikeHistory.push({
+            channel: Math.floor(Math.random() * state.channels),
+            time: state.time,
+            amplitude: 0.3 + Math.random() * 0.7,
+          });
+        }
+        if (state.spikeHistory.length > 2000) state.spikeHistory = state.spikeHistory.slice(-2000);
+
+        // Provenance
+        state.dagEvents++;
+        state.dagDepth = Math.floor(Math.log2(state.dagEvents + 1)) + 1;
+        document.getElementById('dagEvents').textContent = state.dagEvents;
+        document.getElementById('dagDepth').textContent = state.dagDepth;
+
+        // Update latency
+        const lat = (0.1 + Math.random() * 0.5).toFixed(1);
+        document.getElementById('latency').textContent = lat + 'ms';
+      }
+
+      document.getElementById('totalIngested').textContent = state.totalIngested;
+
+      // Update memory display
+      const mem = (1.2 + state.totalIngested * 0.0001).toFixed(1);
+      document.getElementById('memUsage').textContent = mem + 'MB';
+    }
+
+    function simulatePredict() {
+      if (state.totalIngested < 10) return;
+      state.lastPredictionId++;
+      const numIntents = 2 + Math.floor(Math.random() * 3);
+      const intents = [];
+      for (let i = 0; i < numIntents; i++) {
+        intents.push({
+          intent_id: Math.floor(Math.random() * 50),
+          confidence: Math.max(0.1, 1 - i * 0.25 + (Math.random() - 0.5) * 0.15),
+          shortcut_id: Math.random() > 0.7 ? Math.floor(Math.random() * 10) : null,
+          match_distance: Math.random() * 2,
+        });
+      }
+      intents.sort((a, b) => b.confidence - a.confidence);
+
+      const prediction = {
+        id: state.lastPredictionId,
+        timestamp: Date.now(),
+        ranked_intents: intents,
+        latency_us: Math.floor(50 + Math.random() * 300),
+      };
+
+      state.predictions.unshift(prediction);
+      if (state.predictions.length > 20) state.predictions.pop();
+      state.totalPredictions++;
+
+      document.getElementById('totalPredictions').textContent = state.totalPredictions;
+      renderPredictions();
+
+      // Add pattern node
+      if (Math.random() < 0.4 && state.nodes.length < 120) {
+        addGraphNode('pattern');
+      }
+    }
+
+    function simulateShortcutDiscovery() {
+      if (state.nodes.length < 10 || Math.random() > 0.15) return;
+      const nodeIds = state.nodes.slice(-10).map(n => n.id);
+      const selected = [];
+      for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i++) {
+        selected.push(nodeIds[Math.floor(Math.random() * nodeIds.length)]);
+      }
+
+      const shortcut = {
+        id: state.totalShortcuts,
+        nodes: [...new Set(selected)],
+        activation_frequency: Math.floor(Math.random() * 100),
+        predictive_power: (0.5 + Math.random() * 0.5).toFixed(2),
+      };
+
+      state.shortcuts.unshift(shortcut);
+      if (state.shortcuts.length > 10) state.shortcuts.pop();
+      state.totalShortcuts++;
+
+      document.getElementById('totalShortcuts').textContent = state.totalShortcuts;
+      renderShortcuts();
+
+      // Add shortcut node + edges
+      const sNode = addGraphNode('shortcut');
+      if (sNode) {
+        shortcut.nodes.forEach(nid => {
+          const target = state.nodes.find(n => n.id === nid);
+          if (target) {
+            state.edges.push(new GraphEdge(sNode, target, parseFloat(shortcut.predictive_power), 'shortcut'));
+          }
+        });
+      }
+    }
+
+    function simulateAdaptation() {
+      state.loraFast += (Math.random() * 0.02);
+      state.loraSlow += (Math.random() * 0.005);
+      state.ewc = Math.min(1, state.ewc + Math.random() * 0.01);
+      document.getElementById('loraFast').textContent = state.loraFast.toFixed(2);
+      document.getElementById('loraSlow').textContent = state.loraSlow.toFixed(2);
+      document.getElementById('ewcVal').textContent = state.ewc.toFixed(2);
+      document.getElementById('ewcBar').style.width = (state.ewc * 100) + '%';
+    }
+
+    // -----------------------------------------------------------------------
+    // Graph Helpers
+    // -----------------------------------------------------------------------
+    let nodeIdCounter = 0;
+
+    function addGraphNode(type) {
+      const id = nodeIdCounter++;
+      const cx = W / 2, cy = H / 2;
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 50 + Math.random() * Math.min(W, H) * 0.35;
+      const node = new GraphNode(id, cx + Math.cos(angle) * dist, cy + Math.sin(angle) * dist, type);
+      state.nodes.push(node);
+
+      // Connect to nearby nodes
+      const nearby = state.nodes.filter(n => n !== node).sort((a, b) => {
+        const da = Math.hypot(a.x - node.x, a.y - node.y);
+        const db = Math.hypot(b.x - node.x, b.y - node.y);
+        return da - db;
+      }).slice(0, 2 + Math.floor(Math.random() * 2));
+
+      nearby.forEach(n => {
+        const edgeType = type === 'shortcut' ? 'shortcut' : Math.random() > 0.5 ? 'coactivation' : 'temporal';
+        state.edges.push(new GraphEdge(node, n, 0.3 + Math.random() * 0.7, edgeType));
+      });
+
+      if (state.nodes.length > 120) {
+        const removed = state.nodes.shift();
+        state.edges = state.edges.filter(e => e.source !== removed && e.target !== removed);
+      }
+
+      return node;
+    }
+
+    function updateTierBars() {
+      const total = Math.max(1, state.tierFast + state.tierMedium + state.tierSlow);
+      document.getElementById('tierFast').textContent = state.tierFast;
+      document.getElementById('tierMedium').textContent = state.tierMedium;
+      document.getElementById('tierSlow').textContent = state.tierSlow;
+      document.getElementById('tierFastBar').style.width = (state.tierFast / total * 100) + '%';
+      document.getElementById('tierMediumBar').style.width = (state.tierMedium / total * 100) + '%';
+      document.getElementById('tierSlowBar').style.width = (state.tierSlow / total * 100) + '%';
+    }
+
+    // -----------------------------------------------------------------------
+    // Rendering: Predictions & Shortcuts
+    // -----------------------------------------------------------------------
+    function renderPredictions() {
+      const container = document.getElementById('predictionList');
+      if (state.predictions.length === 0) {
+        container.innerHTML = '<div class="text-xs text-zinc-600 text-center py-8">No predictions yet.<br>Start a simulation to generate data.</div>';
+        return;
+      }
+      container.innerHTML = state.predictions.slice(0, 8).map(p => {
+        const top = p.ranked_intents[0];
+        const conf = (top.confidence * 100).toFixed(0);
+        const barColor = conf > 70 ? 'bg-neural-400' : conf > 40 ? 'bg-synapse-400' : 'bg-spike-400';
+        return `<div class="bg-zinc-900/60 border border-zinc-800/50 rounded-lg p-2.5 space-y-1.5 hover:border-zinc-700/50 transition-colors">
+          <div class="flex justify-between items-center">
+            <span class="text-[10px] text-zinc-500 font-mono">#${p.id}</span>
+            <span class="text-[10px] text-zinc-600 font-mono">${p.latency_us}us</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="flex-1">
+              <div class="text-xs text-zinc-200">Intent ${top.intent_id}</div>
+              <div class="w-full h-1 bg-zinc-800 rounded-full mt-1 overflow-hidden">
+                <div class="h-full ${barColor} rounded-full" style="width:${conf}%"></div>
+              </div>
+            </div>
+            <span class="text-sm font-mono font-semibold ${conf > 70 ? 'text-neural-400' : conf > 40 ? 'text-synapse-400' : 'text-spike-400'}">${conf}%</span>
+          </div>
+          ${top.shortcut_id !== null ? `<div class="text-[10px] text-synapse-400 flex items-center gap-1"><span class="iconify" data-icon="lucide:zap" data-width="10"></span> Shortcut #${top.shortcut_id}</div>` : ''}
+        </div>`;
+      }).join('');
+    }
+
+    function renderShortcuts() {
+      const container = document.getElementById('shortcutList');
+      if (state.shortcuts.length === 0) {
+        container.innerHTML = '<div class="text-xs text-zinc-600 text-center py-4">No shortcuts discovered.</div>';
+        return;
+      }
+      container.innerHTML = state.shortcuts.slice(0, 5).map(s => {
+        return `<div class="bg-zinc-900/60 border border-zinc-800/50 rounded-lg px-2.5 py-2 flex items-center justify-between hover:border-zinc-700/50 transition-colors">
+          <div>
+            <div class="text-[11px] text-zinc-300 flex items-center gap-1"><span class="iconify text-neural-400" data-icon="lucide:zap" data-width="10"></span> Shortcut #${s.id}</div>
+            <div class="text-[10px] text-zinc-500 font-mono">${s.nodes.length} nodes</div>
+          </div>
+          <div class="text-right">
+            <div class="text-xs font-mono text-neural-400">${s.predictive_power}</div>
+            <div class="text-[10px] text-zinc-600">${s.activation_frequency}x</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // -----------------------------------------------------------------------
+    // Drawing
+    // -----------------------------------------------------------------------
+    const edgeColors = { coactivation: '#a78bfa', temporal: '#60a5fa', shortcut: '#34d399' };
+    const nodeColors = { memory: '#a78bfa', pattern: '#f472b6', shortcut: '#34d399' };
+
+    function drawGraph() {
+      ctx.fillStyle = 'rgba(5,5,8,0.15)';
+      ctx.fillRect(0, 0, W, H);
+
+      // Force-directed layout step
+      const nodes = state.nodes;
+      const edges = state.edges;
+
+      // Repulsion
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const dx = nodes[j].x - nodes[i].x;
+          const dy = nodes[j].y - nodes[i].y;
+          const dist = Math.max(1, Math.hypot(dx, dy));
+          const force = 800 / (dist * dist);
+          const fx = (dx / dist) * force;
+          const fy = (dy / dist) * force;
+          nodes[i].vx -= fx;
+          nodes[i].vy -= fy;
+          nodes[j].vx += fx;
+          nodes[j].vy += fy;
+        }
+      }
+
+      // Attraction
+      edges.forEach(e => {
+        const dx = e.target.x - e.source.x;
+        const dy = e.target.y - e.source.y;
+        const dist = Math.hypot(dx, dy);
+        const force = (dist - 80) * 0.01 * e.weight;
+        const fx = (dx / Math.max(1, dist)) * force;
+        const fy = (dy / Math.max(1, dist)) * force;
+        e.source.vx += fx;
+        e.source.vy += fy;
+        e.target.vx -= fx;
+        e.target.vy -= fy;
+      });
+
+      // Center gravity
+      nodes.forEach(n => {
+        n.vx += (W / 2 - n.x) * 0.001;
+        n.vy += (H / 2 - n.y) * 0.001;
+        n.vx *= 0.9;
+        n.vy *= 0.9;
+        n.x += n.vx;
+        n.y += n.vy;
+        n.x = Math.max(20, Math.min(W - 20, n.x));
+        n.y = Math.max(20, Math.min(H - 20, n.y));
+        n.activation *= 0.97;
+      });
+
+      // Draw edges
+      edges.forEach(e => {
+        const alpha = 0.1 + e.weight * 0.2;
+        ctx.beginPath();
+        ctx.moveTo(e.source.x, e.source.y);
+        ctx.lineTo(e.target.x, e.target.y);
+        ctx.strokeStyle = edgeColors[e.type] || '#555';
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = e.type === 'shortcut' ? 1.5 : 0.8;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      });
+
+      // Draw nodes
+      nodes.forEach(n => {
+        const age = Math.min(1, (state.time - n.born) / 30);
+        const glow = n.activation;
+        const color = nodeColors[n.type] || '#888';
+        const r = n.size * age + glow * 4;
+
+        // Glow
+        if (glow > 0.1) {
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, r + 8, 0, Math.PI * 2);
+          ctx.fillStyle = color;
+          ctx.globalAlpha = glow * 0.15;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.3 + age * 0.7;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+    }
+
+    function drawSpikeRaster() {
+      ctx.fillStyle = '#050508';
+      ctx.fillRect(0, 0, W, H);
+
+      if (state.spikeHistory.length === 0) {
+        ctx.fillStyle = '#3f3f46';
+        ctx.font = '12px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('No spike data. Start simulation.', W / 2, H / 2);
+        return;
+      }
+
+      const timeWindow = 200;
+      const now = state.time;
+      const recent = state.spikeHistory.filter(s => s.time > now - timeWindow);
+      const channelHeight = Math.max(1, (H - 40) / state.channels);
+
+      // Grid
+      ctx.strokeStyle = '#18181b';
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i <= 4; i++) {
+        const x = 40 + (W - 60) * (i / 4);
+        ctx.beginPath();
+        ctx.moveTo(x, 20);
+        ctx.lineTo(x, H - 20);
+        ctx.stroke();
+      }
+
+      // Channel labels
+      ctx.fillStyle = '#52525b';
+      ctx.font = '9px JetBrains Mono';
+      ctx.textAlign = 'right';
+      for (let ch = 0; ch < state.channels; ch += Math.max(1, Math.floor(state.channels / 8))) {
+        const y = 20 + ch * channelHeight;
+        ctx.fillText(ch.toString(), 35, y + 4);
+      }
+
+      // Spikes
+      recent.forEach(s => {
+        const x = 40 + ((s.time - (now - timeWindow)) / timeWindow) * (W - 60);
+        const y = 20 + s.channel * channelHeight;
+        const alpha = s.amplitude;
+        ctx.fillStyle = `rgba(167,139,250,${alpha})`;
+        ctx.fillRect(x, y, 2, Math.max(1, channelHeight - 0.5));
+      });
+    }
+
+    function drawPredictionChart() {
+      ctx.fillStyle = '#050508';
+      ctx.fillRect(0, 0, W, H);
+
+      if (state.predictions.length === 0) {
+        ctx.fillStyle = '#3f3f46';
+        ctx.font = '12px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('No predictions yet. Start simulation.', W / 2, H / 2);
+        return;
+      }
+
+      const margin = { top: 30, right: 30, bottom: 40, left: 60 };
+      const plotW = W - margin.left - margin.right;
+      const plotH = H - margin.top - margin.bottom;
+
+      // Axes
+      ctx.strokeStyle = '#27272a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(margin.left, margin.top);
+      ctx.lineTo(margin.left, H - margin.bottom);
+      ctx.lineTo(W - margin.right, H - margin.bottom);
+      ctx.stroke();
+
+      ctx.fillStyle = '#52525b';
+      ctx.font = '10px JetBrains Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText('Prediction ID', W / 2, H - 10);
+      ctx.save();
+      ctx.translate(15, H / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('Confidence', 0, 0);
+      ctx.restore();
+
+      // Y-axis labels
+      ctx.textAlign = 'right';
+      for (let i = 0; i <= 4; i++) {
+        const val = i * 25;
+        const y = H - margin.bottom - (val / 100) * plotH;
+        ctx.fillStyle = '#3f3f46';
+        ctx.fillText(val + '%', margin.left - 8, y + 4);
+        ctx.strokeStyle = '#1a1a1e';
+        ctx.beginPath();
+        ctx.moveTo(margin.left, y);
+        ctx.lineTo(W - margin.right, y);
+        ctx.stroke();
+      }
+
+      // Data points
+      const preds = state.predictions.slice(0, 20).reverse();
+      const barW = Math.min(30, plotW / preds.length - 4);
+
+      preds.forEach((p, i) => {
+        const x = margin.left + (i + 0.5) * (plotW / preds.length);
+        const top = p.ranked_intents[0];
+        const conf = top.confidence;
+        const h = conf * plotH;
+        const y = H - margin.bottom - h;
+
+        const color = conf > 0.7 ? '#34d399' : conf > 0.4 ? '#a78bfa' : '#f472b6';
+
+        // Bar
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.7;
+        ctx.fillRect(x - barW / 2, y, barW, h);
+        ctx.globalAlpha = 0.2;
+        ctx.fillRect(x - barW / 2, y, barW, h);
+        ctx.globalAlpha = 1;
+
+        // Label
+        ctx.fillStyle = '#71717a';
+        ctx.font = '9px JetBrains Mono';
+        ctx.textAlign = 'center';
+        ctx.fillText('#' + p.id, x, H - margin.bottom + 14);
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // Animation Loop
+    // -----------------------------------------------------------------------
+    let simInterval = null;
+
+    function animate() {
+      state.time += 0.5;
+
+      if (state.activeTab === 'graph') drawGraph();
+      else if (state.activeTab === 'spikes') drawSpikeRaster();
+      else if (state.activeTab === 'predictions') drawPredictionChart();
+
+      // Hash animation
+      if (state.dagEvents > 0 && state.time % 10 < 0.5) {
+        const hash = Array.from({ length: 8 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+        document.getElementById('footerHash').textContent = hash + '...';
+      }
+
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    // -----------------------------------------------------------------------
+    // Controls
+    // -----------------------------------------------------------------------
+    function toggleSimulation() {
+      state.simulating = !state.simulating;
+      document.getElementById('simLabel').textContent = state.simulating ? 'Stop' : 'Simulate';
+      document.getElementById('simIcon').setAttribute('data-icon', state.simulating ? 'lucide:pause' : 'lucide:play');
+
+      if (state.simulating) {
+        simInterval = setInterval(() => {
+          simulateIngest();
+          if (Math.random() < 0.3) simulatePredict();
+          if (Math.random() < 0.1) simulateShortcutDiscovery();
+          simulateAdaptation();
+
+          // Activate random nodes
+          if (state.nodes.length > 0) {
+            const n = state.nodes[Math.floor(Math.random() * state.nodes.length)];
+            n.activation = 1;
+          }
+        }, 200);
+      } else {
+        clearInterval(simInterval);
+        simInterval = null;
+      }
+    }
+
+    function toggleSession() {
+      state.sessionActive = !state.sessionActive;
+      const btn = document.getElementById('sessionBtn');
+      const label = document.getElementById('sessionLabel');
+      const dot = btn.querySelector('span:first-child');
+
+      if (state.sessionActive) {
+        state.sessionId++;
+        document.getElementById('sessionId').textContent = String(state.sessionId).padStart(3, '0');
+        label.textContent = 'Active';
+        btn.className = 'flex items-center gap-2 px-3 py-1.5 bg-neural-500/10 border border-neural-500/30 rounded-lg text-xs text-neural-400 hover:bg-neural-500/20 transition-all';
+        dot.className = 'w-2 h-2 rounded-full bg-neural-400 animate-pulse';
+      } else {
+        label.textContent = 'Ended';
+        btn.className = 'flex items-center gap-2 px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-zinc-500 hover:bg-zinc-700/50 transition-all';
+        dot.className = 'w-2 h-2 rounded-full bg-zinc-600';
+      }
+    }
+
+    function switchTab(tab) {
+      state.activeTab = tab;
+      ['graph', 'spikes', 'predictions'].forEach(t => {
+        const el = document.getElementById('tab-' + t);
+        el.className = 'px-4 py-3 text-xs font-medium border-b-2 transition-colors ' + (t === tab ? 'tab-active' : 'tab-inactive');
+      });
+      // Force redraw
+      ctx.fillStyle = '#050508';
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    function updateCoherence(val) {
+      state.coherenceThreshold = val / 100;
+      document.getElementById('coherenceVal').textContent = state.coherenceThreshold.toFixed(2);
+    }
+
+    function updateChannels(val) {
+      state.channels = parseInt(val);
+      document.getElementById('channelCount').textContent = val;
+    }
+
+    function updateSpikeRate(val) {
+      state.spikeRate = parseInt(val);
+      document.getElementById('spikeRate').textContent = val;
+    }
+
+    function sendFeedback(type) {
+      if (state.predictions.length === 0) return;
+      const names = ['Confirmed', 'Corrected', 'Rejected'];
+      const colors = ['text-neural-400', 'text-synapse-400', 'text-spike-400'];
+
+      // Flash adaptation
+      if (type === 0) { state.loraFast += 0.05; state.ewc = Math.min(1, state.ewc + 0.02); }
+      else if (type === 1) { state.loraFast += 0.1; state.loraSlow += 0.02; }
+      else { state.loraFast += 0.15; state.loraSlow += 0.05; state.ewc = Math.min(1, state.ewc + 0.05); }
+
+      document.getElementById('loraFast').textContent = state.loraFast.toFixed(2);
+      document.getElementById('loraSlow').textContent = state.loraSlow.toFixed(2);
+      document.getElementById('ewcVal').textContent = state.ewc.toFixed(2);
+      document.getElementById('ewcBar').style.width = (state.ewc * 100) + '%';
+
+      state.dagEvents++;
+      document.getElementById('dagEvents').textContent = state.dagEvents;
+    }
+
+    function runMaintenance() {
+      // Promote some fast to medium, medium to slow
+      const promFast = Math.floor(state.tierFast * 0.1);
+      const promMedium = Math.floor(state.tierMedium * 0.05);
+      state.tierFast -= promFast;
+      state.tierMedium += promFast - promMedium;
+      state.tierSlow += promMedium;
+      updateTierBars();
+
+      // Consolidate LoRA
+      state.loraSlow += state.loraFast * 0.3;
+      state.loraFast *= 0.5;
+      document.getElementById('loraFast').textContent = state.loraFast.toFixed(2);
+      document.getElementById('loraSlow').textContent = state.loraSlow.toFixed(2);
+
+      state.dagEvents += 3;
+      document.getElementById('dagEvents').textContent = state.dagEvents;
+
+      // Activate all nodes briefly (self-healing pass)
+      state.nodes.forEach(n => n.activation = 0.5);
+    }
+
+    function resetState() {
+      if (state.simulating) toggleSimulation();
+      state.totalIngested = 0;
+      state.totalDenied = 0;
+      state.totalPredictions = 0;
+      state.totalShortcuts = 0;
+      state.tierFast = 0;
+      state.tierMedium = 0;
+      state.tierSlow = 0;
+      state.loraFast = 0;
+      state.loraSlow = 0;
+      state.ewc = 0;
+      state.dagEvents = 0;
+      state.dagDepth = 0;
+      state.predictions = [];
+      state.shortcuts = [];
+      state.nodes = [];
+      state.edges = [];
+      state.spikeHistory = [];
+      state.lastPredictionId = 0;
+      nodeIdCounter = 0;
+
+      document.getElementById('totalIngested').textContent = '0';
+      document.getElementById('totalPredictions').textContent = '0';
+      document.getElementById('totalShortcuts').textContent = '0';
+      document.getElementById('gateAccepted').textContent = '0';
+      document.getElementById('gateRejected').textContent = '0';
+      document.getElementById('dagEvents').textContent = '0';
+      document.getElementById('dagDepth').textContent = '0';
+      document.getElementById('loraFast').textContent = '0.00';
+      document.getElementById('loraSlow').textContent = '0.00';
+      document.getElementById('ewcVal').textContent = '0.00';
+      document.getElementById('ewcBar').style.width = '0%';
+      document.getElementById('memUsage').textContent = '1.2MB';
+      document.getElementById('footerHash').textContent = '---';
+      updateTierBars();
+      renderPredictions();
+      renderShortcuts();
+    }
+  </script>
+</body>
+</html>
